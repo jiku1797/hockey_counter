@@ -61,6 +61,7 @@
 			align-items: center;
 			height: 10%;
 			border-top: 1px solid #333;
+			gap: 8px;
 		}
 
 		input {
@@ -115,9 +116,13 @@
 			transition: width var(--reset-time, 1000ms) linear;
 		}
 
-	.reset.holding::after {
-		width: 100%;
-	}
+		.reset.holding::after {
+				width: 100%;
+		}
+			
+		#undoBtn::after {
+			background: #3498db; /* blue bar instead of red */
+		}
 
 	</style>
 </head>
@@ -142,6 +147,7 @@
 
 	<div class="controls">
 		<button id="resetBtn" class="reset">Håll ned för att nollställa</button>
+		<button id="undoBtn" class="reset">Ångra (håll ned)</button>
 	</div>
 
 	<script>
@@ -151,6 +157,22 @@
 	const scoreAEl = document.getElementById("scoreA");
 	const scoreBEl = document.getElementById("scoreB");
 	const resetBtn = document.getElementById("resetBtn");
+	const undoBtn = document.getElementById("undoBtn");
+
+	function undoLast() {
+		if (history.length === 0) return;
+
+		const last = history.pop();
+		if (last === 'A') scoreA = Math.max(0, scoreA - 1);
+		else if (last === 'B') scoreB = Math.max(0, scoreB - 1);
+
+		update();
+
+		if (navigator.vibrate) navigator.vibrate(50);
+	}
+
+	// Reuse the same RESET_DURATION
+	let undoHoldTimer = null;
 
 	function update() {
 		scoreAEl.textContent = scoreA;
@@ -211,6 +233,23 @@
 			holdTimer = null;
 		}, RESET_DURATION);
 	});
+	
+	undoBtn.addEventListener("pointerdown", () => {
+		undoBtn.classList.remove("holding");
+		void undoBtn.offsetWidth; // force reflow
+		undoBtn.style.transition = `width ${RESET_DURATION}ms linear`;
+
+		requestAnimationFrame(() => {
+			undoBtn.classList.add("holding");
+		});
+
+		undoHoldTimer = setTimeout(() => {
+			undoLast();
+			undoBtn.classList.remove("holding");
+			undoBtn.style.transition = "";
+			undoHoldTimer = null;
+		}, RESET_DURATION);
+	});
 
 	// Cancel if user releases or moves pointer
 	["pointerup", "pointerleave", "pointercancel"].forEach(evt => {
@@ -221,6 +260,17 @@
 			}
 			resetBtn.classList.remove("holding");
 			resetBtn.style.transition = "";
+		});
+	});
+	
+	["pointerup", "pointerleave", "pointercancel"].forEach(evt => {
+		undoBtn.addEventListener(evt, () => {
+			if (undoHoldTimer !== null) {
+				clearTimeout(undoHoldTimer);
+				undoHoldTimer = null;
+			}
+			undoBtn.classList.remove("holding");
+			undoBtn.style.transition = "";
 		});
 	});
 
