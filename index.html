@@ -48,6 +48,12 @@
 			justify-content: center;
 			align-items: center;
 		}
+		
+		.divider {
+			height: 1px;
+			background: #333;
+			width: 100%;
+		}
 
 		.controls {
 			display: flex;
@@ -124,6 +130,8 @@
 			<div id="scoreA" class="score">0</div>
 			<button class="plus" onclick="add('A')">+</button>
 		</div>
+		
+		<div class="divider"></div> <!-- line between counters -->
 
 		<div class="team">
 			<input id="nameB" value="Lag B">
