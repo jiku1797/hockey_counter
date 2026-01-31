@@ -1,6 +1,6 @@
 {
-  "name": "Shot Counter",
-  "short_name": "Shots",
+  "name": "Skott på Mål",
+  "short_name": "Skott på Mål",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#111111",
