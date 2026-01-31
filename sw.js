@@ -3,7 +3,9 @@ const urlsToCache = [
     "/",                  // index.html
     "/index.html",        // make sure path is correct
     "/manifest.json",
-    "/icons/hockey_icon_120.png"
+    "/hockey_icon_192.png"
+	"/hockey_icon_512.png"
+	"/apple-touch-icon.png"
 ];
 
 self.addEventListener("install", event => {
