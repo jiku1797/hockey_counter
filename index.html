@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+	<!-- Manifest -->
+	<link rel="manifest" href="manifest.json">
+	<meta name="theme-color" content="#111111">
+
+	<!-- iOS PWA -->
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black">
+	<link rel="apple-touch-icon" sizes="120x120" href="icons/hockey_icon_120.png">
+
+	<title>Shot Counter</title>
+
+	<style>
+		html, body {
+			font-family: -apple-system, system-ui;
+			margin: 0;
+			height: 100dvh;
+			display: flex;
+			flex-direction: column;
+			background: #111;
+			color: white;
+
+			touch-action: manipulation;
+			-webkit-user-select: none;
+			user-select: none;
+		}
+
+		button, input {
+			-webkit-tap-highlight-color: transparent;
+			touch-action: manipulation;
+		}
+
+		.container {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.team {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.controls {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			height: 10%;
+			border-top: 1px solid #333;
+		}
+
+		input {
+			font-size: 26px;
+			text-align: center;
+			background: transparent;
+			border: none;
+			color: white;
+			margin-bottom: 10px;
+		}
+
+		.score {
+			font-size: 120px;
+			font-weight: bold;
+			margin-bottom: 10px;
+		}
+
+		button.plus {
+			font-size: 70px;
+			padding: 30px;
+			margin-bottom: 20px;
+			width: 220px;
+			border-radius: 20px;
+			border: none;
+			background: #2ecc71;
+			color: white;
+			position: relative;
+		}
+
+		.reset {
+			width: 160px;
+			padding: 10px;
+			font-size: 14px;
+			border-radius: 10px;
+			border: none;
+			background: #222;
+			color: #aaa;
+			position: relative;
+			overflow: hidden;
+		}
+
+		.reset::after {
+			content: "";
+			position: absolute;
+			top: 0;
+			left: 0;
+			height: 100%;
+			width: 0%;
+			background: #e74c3c;
+			opacity: 0.6;
+			z-index: 0;
+			transition: width var(--reset-time, 1000ms) linear;
+		}
+
+	.reset.holding::after {
+		width: 100%;
+	}
+
+	</style>
+</head>
+
+<body>
+
+	<div class="container">
+		<div class="team">
+			<input id="nameA" value="Lag A">
+			<div id="scoreA" class="score">0</div>
+			<button class="plus" onclick="add('A')">+</button>
+		</div>
+
+		<div class="team">
+			<input id="nameB" value="Lag B">
+			<div id="scoreB" class="score">0</div>
+			<button class="plus" onclick="add('B')">+</button>
+		</div>
+	</div>
+
+	<div class="controls">
+		<button id="resetBtn" class="reset">Hold to reset</button>
+	</div>
+
+	<script>
+	let scoreA = 0, scoreB = 0, history = [];
+	const RESET_DURATION = 1200; // milliseconds
+
+	const scoreAEl = document.getElementById("scoreA");
+	const scoreBEl = document.getElementById("scoreB");
+	const resetBtn = document.getElementById("resetBtn");
+
+	function update() {
+		scoreAEl.textContent = scoreA;
+		scoreBEl.textContent = scoreB;
+		localStorage.setItem("game", JSON.stringify({scoreA, scoreB, history}));
+	}
+
+	// Load saved scores
+	(function load(){
+		const saved = JSON.parse(localStorage.getItem("game"));
+		if(saved){
+			scoreA = saved.scoreA;
+			scoreB = saved.scoreB;
+			history = saved.history || [];
+			update();
+		}
+	})();
+
+	// Add shot function with vibration
+	function add(team){
+		if(team === 'A') scoreA++; else scoreB++;
+		history.push(team);
+		update();
+
+		if(navigator.vibrate) navigator.vibrate(30);
+	}
+
+	// Reset game function
+	function resetGame(){
+		scoreA = 0; scoreB = 0; history = [];
+		update();
+		if(navigator.vibrate) navigator.vibrate([50,50,50]);
+	}
+
+	// ====================
+	// Long-press reset logic
+	// ====================
+	let holdTimer = null;
+
+	resetBtn.addEventListener("pointerdown", () => {
+		// start at 0% width
+		resetBtn.classList.remove("holding");
+		void resetBtn.offsetWidth; // force reflow
+
+		// set transition duration to match reset timeout
+		resetBtn.style.transition = `width ${RESET_DURATION}ms linear`;
+
+		// start filling bar on next frame
+		requestAnimationFrame(() => {
+			resetBtn.classList.add("holding");
+		});
+
+		// set the reset timer
+		holdTimer = setTimeout(() => {
+			resetGame();
+			resetBtn.classList.remove("holding");
+			resetBtn.style.transition = "";
+			holdTimer = null;
+		}, RESET_DURATION);
+	});
+
+	// Cancel if user releases or moves pointer
+	["pointerup", "pointerleave", "pointercancel"].forEach(evt => {
+		resetBtn.addEventListener(evt, () => {
+			if (holdTimer !== null) {
+				clearTimeout(holdTimer);
+				holdTimer = null;
+			}
+			resetBtn.classList.remove("holding");
+			resetBtn.style.transition = "";
+		});
+	});
+
+	// ====================
+	// Service Worker for offline
+	// ====================
+	if ('serviceWorker' in navigator) {
+		navigator.serviceWorker.register('sw.js')
+			.then(() => console.log("SW registered"))
+			.catch(err => console.log("SW registration failed:", err));
+	}
+
+	</script>
+</body>
+</html>
